@@ -14,7 +14,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 // static files
                 //public
-                fs::Files::new("/", "/public/").index_file("index.html"),
+                fs::Files::new("/", "./public/").index_file("index.html"),
             )
     })
     //.bind("0.0.0.0:80")?

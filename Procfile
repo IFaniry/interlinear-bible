@@ -1,0 +1,1 @@
+web: static_index

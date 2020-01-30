@@ -53,7 +53,6 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 
       - name: Push image
-        id: push-image
         run: |
           declare -l IMAGE_ID
           IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
@@ -67,7 +66,6 @@ jobs:
           echo VERSION=$VERSION
           docker tag image $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
-          echo "$IMAGE_ID:$VERSION" > docker-image.txt
       - name: Upload docker-image.txt for CF push job
         uses: actions/upload-artifact@v1
         with:
@@ -97,5 +95,5 @@ jobs:
           name: docker-image
       - name: Update Cloud Foundry App
         run: |
-          $DOCKER_IMAGE = Get-Content .\docker-image.txt -Raw
+          $DOCKER_IMAGE = Get-Content .\docker-image\docker-image.txt -Raw
           cf push interlinear-bible -s $DOCKER_IMAGE

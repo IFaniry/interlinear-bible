@@ -39,7 +39,6 @@ jobs:
   docker-push:
     # Ensure test job passes before pushing image.
     needs: docker-test
-    id: docker-push
 
     runs-on: windows-latest
     if: github.event_name == 'push'

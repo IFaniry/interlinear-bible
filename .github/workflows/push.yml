@@ -40,23 +40,20 @@ jobs:
     # Ensure test job passes before pushing image.
     needs: docker-test
 
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v2
 
       - name: Build image
-        shell: bash
         run: docker build . --file Dockerfile --tag image
 
       - name: Log into registry
-        shell: bash
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 
       - name: Push image
         id: push-image
-        shell: bash
         run: |
           declare -l IMAGE_ID
           IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
@@ -70,29 +67,35 @@ jobs:
           echo VERSION=$VERSION
           docker tag image $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
-          echo "::set-output name=fs-image::$IMAGE_ID:$VERSION"
+          echo "$IMAGE_ID:$VERSION" > docker-image.txt
+      - name: Upload docker-image.txt for CF push job
+        uses: actions/upload-artifact@v1
+        with:
+          name: docker-image
+          path: docker-image.txt
+
+  # Push App to Pivotal Cloud Foundry.
+  # See also https://docs.cloudfoundry.org/buildpacks/binary/index.html
+  cf-push:
+    # Ensure Docker image is pushed before pushing to Cloud Foundry.
+    needs: [docker-test, docker-push]
+
+    runs-on: windows-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Log into registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
       - name: Log into Pivotal Cloud Foundry
         run: |
           cf api https://api.run.pivotal.io
           cf auth ${{ secrets.PCF_USERNAME }} ${{ secrets.PCF_PASSWORD }}
           cf target -o interlinear.bible -s development
+      - name: Download docker-image.txt for pushing to Cloud Foundry
+        uses: actions/download-artifact@v1
+        with:
+          name: docker-image
       - name: Update Cloud Foundry App
-        run: cf push interlinear-bible -s ${{ steps.push-image.outputs.fs-image }}
-
-  # # Push App to Pivotal Cloud Foundry.
-  # # See also https://docs.cloudfoundry.org/buildpacks/binary/index.html
-  # cf-push:
-  #   # Ensure Docker image is pushed before pushing to Cloud Foundry.
-  #   needs: [docker-test, docker-push]
-
-  #   runs-on: windows-latest
-  #   if: github.event_name == 'push'
-
-  #   steps:
-  #     - name: Log into Pivotal Cloud Foundry
-  #       run: |
-  #         cf api https://api.run.pivotal.io
-  #         cf auth ${{ secrets.PCF_USERNAME }} ${{ secrets.PCF_PASSWORD }}
-  #         cf target -o interlinear.bible -s development
-  #     - name: Update Cloud Foundry App
-  #       run: cf push interlinear-bible -s ${{ steps.push-image.outputs.fs-image }}
+        run: |
+          $DOCKER_IMAGE = Get-Content .\docker-image.txt -Raw
+          cf push interlinear-bible -s $DOCKER_IMAGE

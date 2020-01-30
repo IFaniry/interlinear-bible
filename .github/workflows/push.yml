@@ -39,8 +39,9 @@ jobs:
   docker-push:
     # Ensure test job passes before pushing image.
     needs: docker-test
+    id: docker-push
 
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     if: github.event_name == 'push'
 
     steps:
@@ -50,10 +51,12 @@ jobs:
         run: docker build . --file Dockerfile --tag image
 
       - name: Log into registry
+        shell: bash
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 
       - name: Push image
         id: push-image
+        shell: bash
         run: |
           declare -l IMAGE_ID
           IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
@@ -75,3 +78,21 @@ jobs:
           cf target -o interlinear.bible -s development
       - name: Update Cloud Foundry App
         run: cf push interlinear-bible -s ${{ steps.push-image.outputs.fs-image }}
+
+  # # Push App to Pivotal Cloud Foundry.
+  # # See also https://docs.cloudfoundry.org/buildpacks/binary/index.html
+  # cf-push:
+  #   # Ensure Docker image is pushed before pushing to Cloud Foundry.
+  #   needs: [docker-test, docker-push]
+
+  #   runs-on: windows-latest
+  #   if: github.event_name == 'push'
+
+  #   steps:
+  #     - name: Log into Pivotal Cloud Foundry
+  #       run: |
+  #         cf api https://api.run.pivotal.io
+  #         cf auth ${{ secrets.PCF_USERNAME }} ${{ secrets.PCF_PASSWORD }}
+  #         cf target -o interlinear.bible -s development
+  #     - name: Update Cloud Foundry App
+  #       run: cf push interlinear-bible -s ${{ steps.push-image.outputs.fs-image }}

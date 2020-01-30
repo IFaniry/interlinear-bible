@@ -100,7 +100,7 @@ jobs:
           name: docker-image
       - name: Update Cloud Foundry App
         run: |
-          dir
           $DOCKER_IMAGE = Get-Content .\docker-image\docker-image.txt -Raw
-          # docker pull $DOCKER_IMAGE
+          echo $DOCKER_IMAGE
+          docker pull $DOCKER_IMAGE
           cf push interlinear-bible -s $DOCKER_IMAGE

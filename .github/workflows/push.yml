@@ -66,12 +66,15 @@ jobs:
           echo VERSION=$VERSION
           docker tag image $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
-          echo "$IMAGE_ID:$VERSION" > docker-image.txt
+      - name: Putting IMAGE_ID in an artifact
+        run: |
+          mkdir docker-image
+          echo "$IMAGE_ID:$VERSION" > docker-image/docker-image.txt
       - name: Upload docker-image.txt for CF push job
         uses: actions/upload-artifact@v1
         with:
           name: docker-image
-          path: docker-image.txt
+          path: docker-image/docker-image.txt
 
   # Push App to Pivotal Cloud Foundry.
   # See also https://docs.cloudfoundry.org/buildpacks/binary/index.html
@@ -98,5 +101,5 @@ jobs:
       - name: Update Cloud Foundry App
         run: |
           dir
-          $DOCKER_IMAGE = Get-Content .\docker-image.txt -Raw
+          $DOCKER_IMAGE = Get-Content docker-image\docker-image.txt -Raw
           cf push interlinear-bible -s $DOCKER_IMAGE

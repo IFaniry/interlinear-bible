@@ -14,17 +14,17 @@ COPY --from=actixbuilder /usr/local/cargo/bin/static_index /usr/local/bin/
 # ENV PATH /usr/src/app/node_modules/.bin:$PATH
 # RUN gatsby build
 
-#FROM gatsbyjs/gatsby-dev-builds as gatsbybuilder
-#COPY gatsby-site/. /usr/src/gatsby-site
-#WORKDIR /usr/src/gatsby-site
-#RUN npm install
-#RUN gatsby build
+FROM gatsbyjs/gatsby-dev-builds as gatsbybuilder
+COPY gatsby-site/. /usr/src/gatsby-site
+WORKDIR /usr/src/gatsby-site
+RUN yarn
+RUN gatsby build
 
-#FROM bare_cf_static_index as cf_static_index
+FROM bare_cf_static_index as cf_static_index
 #EXPOSE 80
 # COPY --from=actixbuilder /root/.cargo/bin/static_index /usr/local/bin/
-#COPY --from=gatsbybuilder /usr/src/gatsby-site/public/. /public
-COPY gatsby-site/public/. /public
+COPY --from=gatsbybuilder /usr/src/gatsby-site/public/. /public
+#COPY gatsby-site/public/. /public
 
 #COPY --from=actixbuilder /usr/local/cargo/bin/static_index /usr/local/bin/
 #CMD [ "static_index" ]

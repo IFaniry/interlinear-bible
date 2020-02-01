@@ -22,11 +22,11 @@ RUN gatsby build
 
 FROM bare_cf_static_index as cf_static_index
 #EXPOSE 80
-ENV PORT 80
+ENV PORT 8080
 # COPY --from=actixbuilder /root/.cargo/bin/static_index /usr/local/bin/
 COPY --from=gatsbybuilder /usr/src/gatsby-site/public/. /public
 #COPY gatsby-site/public/. /public
-
+EXPOSE $PORT
 #COPY --from=actixbuilder /usr/local/cargo/bin/static_index /usr/local/bin/
 ENTRYPOINT [ "static_index" ]
 #RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh

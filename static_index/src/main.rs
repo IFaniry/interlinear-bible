@@ -18,7 +18,7 @@ async fn main() -> std::io::Result<()> {
             )
     })
     //.bind("0.0.0.0:80")?
-    .bind(format!("0.0.0.0:{}", option_env!("PORT").unwrap_or("80")))?
+    .bind(format!("0.0.0.0:{}", option_env!("PORT").unwrap_or("8080")))?
     .run()
     .await
 }

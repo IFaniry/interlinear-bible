@@ -86,7 +86,7 @@ jobs:
           cf target -o interlinear.bible -s development
       - name: Update Cloud Foundry App
         # run: cf push interlinear-bible --docker-image docker.pkg.github.com/${{ github.repository }}/${IMAGE_NAME}:latest --docker-username secrets.GITHUB_DOCKER_LOGIN
-        run: cf push interlinear-bible --docker-image ${{ secrets.DOCKER_HUB_USERNAME }}/${IMAGE_NAME}:latest
+        run: cf push interlinear-bible --docker-image ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
   #     - name: Log into registry
   #       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 

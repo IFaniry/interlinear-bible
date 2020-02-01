@@ -14,7 +14,6 @@ on:
   pull_request:
 
 env:
-  # TODO: Change variable to your image's name.
   IMAGE_NAME: cf_static_server
 
 jobs:
@@ -46,20 +45,49 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Build image
-        run: docker build . --file Dockerfile --tag image
+      # - name: Push images and caches into Github Docker Registry
+      #   uses: whoan/docker-build-with-cache-action@v2
+      #   with:
+      #     username: ${{ secrets.GITHUB_DOCKER_LOGIN }}
+      #     password: ${{ secrets.GITHUB_DOCKER_TOKEN }}
+      #     image_name: ${{ github.repository }}/$IMAGE_NAME
+      #     image_tag: latest
+      #     registry: docker.pkg.github.com
+      #     build_extra_args: "--compress=true"
 
-      - name: Copy binary from Docker container to host
-        run: |
-          mkdir rust_artifact
-          docker cp image:/usr/local/cargo/bin/static_index rust_artifact
-
-      - name: Upload Rust artifact
-        uses: actions/upload-artifact@v1
+      - name: Push images and caches into Github Docker Registry
+        uses: whoan/docker-build-with-cache-action@v2
         with:
-          name: rust-artifact
-          path: rust_artifact/static_index
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          image_name: $IMAGE_NAME
+          image_tag: latest
 
+  # Push App to Pivotal Cloud Foundry.
+  # See also https://docs.cloudfoundry.org/buildpacks/binary/index.html
+  cf-push:
+    # env:
+    #   CF_DOCKER_PASSWORD: ${{ secrets.GITHUB_DOCKER_TOKEN }}
+    # Ensure Docker image is pushed before pushing to Cloud Foundry.
+    needs: [docker-test, docker-push]
+
+    runs-on: windows-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v2
+      # - name: Log into Github Packages registry
+      #   run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+      # - name: Log into Docker Hub registry
+      #   run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
+      - name: Log into Pivotal Cloud Foundry
+        run: |
+          cf api https://api.run.pivotal.io
+          cf auth ${{ secrets.PCF_USERNAME }} ${{ secrets.PCF_PASSWORD }}
+          cf target -o interlinear.bible -s development
+      - name: Update Cloud Foundry App
+        # run: cf push interlinear-bible --docker-image docker.pkg.github.com/${{ github.repository }}/${IMAGE_NAME}:latest --docker-username secrets.GITHUB_DOCKER_LOGIN
+        run: cf push interlinear-bible --docker-image ${{ secrets.DOCKER_HUB_USERNAME }}/${IMAGE_NAME}:latest
   #     - name: Log into registry
   #       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 
@@ -86,32 +114,3 @@ jobs:
   #       with:
   #         name: docker-image
   #         path: docker-image/docker-image.txt
-
-  # # Push App to Pivotal Cloud Foundry.
-  # # See also https://docs.cloudfoundry.org/buildpacks/binary/index.html
-  # cf-push:
-  #   # Ensure Docker image is pushed before pushing to Cloud Foundry.
-  #   needs: [docker-test, docker-push]
-
-  #   runs-on: windows-latest
-  #   if: github.event_name == 'push'
-
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Log into registry
-  #       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
-  #     - name: Log into Pivotal Cloud Foundry
-  #       run: |
-  #         cf api https://api.run.pivotal.io
-  #         cf auth ${{ secrets.PCF_USERNAME }} ${{ secrets.PCF_PASSWORD }}
-  #         cf target -o interlinear.bible -s development
-  #     - name: Download docker-image.txt for pushing to Cloud Foundry
-  #       uses: actions/download-artifact@v1
-  #       with:
-  #         name: docker-image
-  #     - name: Update Cloud Foundry App
-  #       run: |
-  #         $DOCKER_IMAGE = Get-Content .\docker-image\docker-image.txt -Raw
-  #         echo $DOCKER_IMAGE
-  #         docker pull $DOCKER_IMAGE
-  #         cf push interlinear-bible -s $DOCKER_IMAGE

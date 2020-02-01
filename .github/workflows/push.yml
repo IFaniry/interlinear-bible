@@ -54,13 +54,14 @@ jobs:
       #     image_tag: latest
       #     registry: docker.pkg.github.com
       #     build_extra_args: "--compress=true"
-
+      # - name: Log into Docker Hub registry
+      #   run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
       - name: Push images and caches into Github Docker Registry
         uses: whoan/docker-build-with-cache-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          image_name: ${{ env.IMAGE_NAME }}
+          image_name: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}
           image_tag: latest
 
   # Push App to Pivotal Cloud Foundry.
@@ -78,8 +79,6 @@ jobs:
       - uses: actions/checkout@v2
       # - name: Log into Github Packages registry
       #   run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
-      # - name: Log into Docker Hub registry
-      #   run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
       - name: Log into Pivotal Cloud Foundry
         run: |
           cf api https://api.run.pivotal.io
